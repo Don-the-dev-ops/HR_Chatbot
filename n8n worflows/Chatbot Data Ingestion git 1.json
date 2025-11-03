@@ -1,0 +1,403 @@
+{
+  "name": "Chatbot Data Ingestion git 1",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -944,
+        160
+      ],
+      "id": "8f09a90f-92be-458f-9bfe-d58d232193ac",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de2befc7-f5b2-475a-a3b5-897d47bce266",
+              "name": "repo_owner",
+              "value": "Don-the-dev-ops",
+              "type": "string"
+            },
+            {
+              "id": "65d017cf-acf5-41be-9be5-29380fe00fd5",
+              "name": "repo_name",
+              "value": "HR_Chatbot",
+              "type": "string"
+            },
+            {
+              "id": "4bfdf0fe-dd7a-4e96-b7f1-ad189cf47754",
+              "name": "doc_path",
+              "value": "advanced-chatbot/documents",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -720,
+        160
+      ],
+      "id": "11f46439-b3a5-4677-bcf0-011d199f1bd3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "list",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $json.repo_owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $json.repo_name }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.doc_path }}"
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        160
+      ],
+      "id": "6ad399c3-3c73-4d82-9804-7ddb5e7bc057",
+      "name": "List files",
+      "webhookId": "08d9b2b2-4dea-4133-95ab-06415b35a673",
+      "credentials": {
+        "githubApi": {
+          "id": "FuYuPMr9BB75Qw6v",
+          "name": "GitHub account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields').item.json.repo_owner }}",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "={{ $('Edit Fields').item.json.repo_name }}",
+          "mode": "name"
+        },
+        "filePath": "={{ $json.path }}",
+        "additionalParameters": {}
+      },
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1.1,
+      "position": [
+        -272,
+        160
+      ],
+      "id": "83ed365c-f08c-4680-b145-14433d2613f5",
+      "name": "Get a file",
+      "webhookId": "c2f10970-d00f-4d1d-a2ad-2b07923a73c3",
+      "credentials": {
+        "githubApi": {
+          "id": "FuYuPMr9BB75Qw6v",
+          "name": "GitHub account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "hr",
+          "mode": "list",
+          "cachedResultName": "hr"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        544,
+        176
+      ],
+      "id": "e4db8683-e9c3-4e36-b4d6-37fb49bdefa1",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "AllueNghGUAJeWnd",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "dataType": "binary",
+        "binaryMode": "specificField",
+        "loader": "pdfLoader",
+        "textSplittingMode": "custom",
+        "options": {
+          "splitPages": true,
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "Document ID",
+                "value": "={{ $json.name }}"
+              },
+              {
+                "name": "Document URL",
+                "value": "={{ $json.html_url }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        400
+      ],
+      "id": "6949f939-a7df-4ca3-8f5b-7dad8019578a",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 100,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        720,
+        608
+      ],
+      "id": "dbbb23d3-70e3-4e06-a2df-727222821c9b",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        240,
+        176
+      ],
+      "id": "5358784b-78ba-4810-aedb-61fde7b27252",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hr-z19gf9v.svc.aped-4627-b74a.pinecone.io/vectors/delete",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "pineconeApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "deleteAll",
+              "value": "true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "10180f5d-4fd7-4a43-9886-2624587862b9",
+      "name": "HTTP Request1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "AllueNghGUAJeWnd",
+          "name": "PineconeApi account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        448,
+        400
+      ],
+      "id": "167a4edd-c4b0-44b2-a305-fc398248b97c",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "cho2PYjd0d3x77tY",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Please add you github access token in the github node\n(Please feel free to consult youtube video's on how to acquire access github access token)",
+        "width": 224
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -448,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "7adfdd83-9d08-4c7d-9b65-6a03b235ec23",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Please sign up for google Gemini's free API key (to generate your own API key)",
+        "width": 150
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        400,
+        576
+      ],
+      "typeVersion": 1,
+      "id": "7c349c1e-f39d-4c2c-bfe8-c34da1143cf9",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "List files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List files": {
+      "main": [
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "0a5965e5-d718-4d7c-9392-4da0e18e198f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "94cef4a7b01cb4749cdc39f8c603220afda896744a0b1852cb74652554e8076f"
+  },
+  "id": "TEEmLoBza4cYHsLF",
+  "tags": []
+}
